@@ -4,6 +4,7 @@ from telegram.constants import ChatAction
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import MessageHandler
 from telegram.ext.filters import BaseFilter
+from telegram.ext import filters
 token = "6906320146:AAGRtpszj4HqM9r-KEPaYklswuxshMfB1PA"
 
 async def start_handler(update: Update, context: CallbackContext):
@@ -29,7 +30,7 @@ async def sum_handler(update: Update , context: CallbackContext):
 
 async def main_menu_handler(update:Update , context : CallbackContext) :
     buttons = [
-        ["انتخاب زبان" , "گزینه دوم"] ,
+        ["انتخاب زبان" , "گرفتن لینک های سایت"] ,
         ["گزینه سوم"] ,
         ["گزینه چهارم"]
     ]
@@ -48,13 +49,53 @@ async def languege_handel (update : Update , context : CallbackContext) :
 async def return_handler (update : Update , context : CallbackContext) : 
     await main_menu_handler(update , context)
 
+
+def getlink(text) :
+    import requests
+    from bs4 import BeautifulSoup as BS
+    import re
+    def not_lacie(href):
+        return href and not re.compile("lacie").search(href)
+
+    final = []
+    url = text
+    r = requests.get(url)
+    content = r.text
+    soup = BS(content,'html.parser')
+    elem = list(soup.find_all(href=not_lacie))
+    count = len(elem)
+    for i in range(0,count) :
+        li = str(elem[i]).split(" ")
+        count2 = len(li)
+        for j in range(0,count2) : 
+            if "href" in li[j] :
+                links = str(li[j]).split("=")
+                count3 = len(links)
+                for z in range(0,count3) :
+                    if str(text).split("//")[1] in links[z] :
+                        string = links[z]
+                        final.append(string)
+                        # print(type(final))
+                        # print(final)
+
+    return final
+
+
+async def getlink_handler (update:Update , context : CallbackContext) :
+    await update.message.reply_text(text="لینک موردنظر خود را وارد کنید :")
+    links=getlink("https://wikm.ir")
+    count = len(links)
+    for i in range (0,count) :
+        await update.message.reply_text(links[i])
+    
+    
 def main() :
     application = ApplicationBuilder().token(token).build()
     application.add_handler(CommandHandler("start" , start_handler))
     application.add_handler(CommandHandler("sum" , sum_handler))
-    application.add_handler(MessageHandler(BaseFilter("انتخاب زبان") , languege_handel))
-    application.add_handler(MessageHandler(BaseFilter("بازگشت") , return_handler))
-
+    application.add_handler(MessageHandler(filters.Regex("انتخاب زبان") , languege_handel))
+    application.add_handler(MessageHandler(filters.Regex("بازگشت") , return_handler))
+    application.add_handler(MessageHandler(filters.Regex("گرفتن لینک های سایت") , getlink_handler))
     application.run_polling()
 
 
