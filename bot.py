@@ -16,10 +16,12 @@ async def admin_handler (update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     if chat_id == admin_chat :
         await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
+        #######################print(update)
         await context.bot.sendMessage(chat_id , "سلام گلم . به محیط ادمین خوش آمدی")
         buttons = [
             [
-                InlineKeyboardButton("ارسال بکاپ" , callback_data="send_backup")
+                InlineKeyboardButton("ارسال بکاپ" , callback_data="send_backup"),
+                InlineKeyboardButton("ارسال پیام همگانی" , callback_data="send_to_all")
             ]
         ]
         await update.message.reply_text(
@@ -28,23 +30,29 @@ async def admin_handler (update : Update , context : CallbackContext) :
         )
 
 async def query_handler(update : Update , context : CallbackContext) :
+    admin_chat = 877591460
     query = update.callback_query
     data = query.data
     chat_id = query.message.chat_id
     if data == "send_backup" :
-        await send_backup_costum(update , context)
+        if chat_id == admin_chat :
+            with open ("./id.txt" , "rb") as file :
+                await context.bot.send_chat_action(chat_id , ChatAction.UPLOAD_DOCUMENT)
+                await context.bot.send_document(chat_id , file , caption="BackUp File" , connect_timeout = 5000)
+        await admin_handler(query , context)
+    elif data == "send_to_all" :
+        await context.bot.sendMessage(chat_id , "پیام موردنظر را وارد کنید : ")
+        context.user_data['action'] = 'send'
 
-async def send_backup_costum(update : Update , context : CallbackContext) :
-    admin_chat = 877591460
-    query = update.callback_query
-    chat_id = query.message.chat_id
-    if chat_id == admin_chat :
-        with open ("./id.txt" , "rb") as file :
-            await context.bot.send_chat_action(chat_id , ChatAction.UPLOAD_DOCUMENT)
-            await context.bot.send_document(chat_id , file , caption="BackUp File" , connect_timeout = 5000)
-        #await admin_handler(update , context)
-    
+async def text_handler (update : Update , context : CallbackContext) :
+    chat_id = update.message.chat_id
+    if context.user_data['action'] == "send" :
+        name = update.message.text
+        await context.bot.sendMessage(chat_id , name)
+        context.user_data['action'] = " "
 
+#start and user :
+        
 async def start (update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     fisrname = update.message.chat.first_name
@@ -78,6 +86,8 @@ def main () :
     application.add_handler(CommandHandler("admin" , admin_handler))
 
     application.add_handler(CallbackQueryHandler(query_handler))
+
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND , text_handler))
 
     application.run_polling()
 
