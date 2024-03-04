@@ -9,14 +9,14 @@ from telegram import InlineKeyboardButton
 from telegram.ext import CallbackQueryHandler
 from telegram.ext import ConversationHandler
 import mysql.connector
-
-db = mysql.connect(
-    host = "localhost",
-    user = "root",
-    passwd = "dbms"
-)
-
-print(db)
+import subprocess
+user = "wikm"
+password = "Mdmd@1383"
+host = "127.0.0.1"
+database = "UKCalendar"
+db = mysql.connector.connect(user=user, password=password,
+                              host=host , database = database)
+cursor = db.cursor()
 
 token = "7029093646:AAFqi8sFOTpJS_t-7GKYRLVZOuyajJa2xWw"
 status = bool
@@ -26,7 +26,6 @@ async def admin_handler (update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     if chat_id == admin_chat :
         await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-        #######################print(update)
         await context.bot.sendMessage(chat_id , "سلام گلم . به محیط ادمین خوش آمدی")
         buttons = [
             [
@@ -40,14 +39,22 @@ async def admin_handler (update : Update , context : CallbackContext) :
         )
 
 async def query_handler(update : Update , context : CallbackContext) :
+    global user
+    global password
+    global database
+    global db
+    global cursor
     global status
     admin_chat = 877591460
     query = update.callback_query
     data = query.data
     chat_id = query.message.chat_id
+    chat_id_str = str(chat_id)
     if data == "send_backup" :
         if chat_id == admin_chat :
-            with open ("./id.txt" , "rb") as file :
+            with open("./backup_file", 'wb') as file:
+                subprocess.run(['mysqldump', '-u', user, '-p' + password, database], stdout=file)
+            with open ("./backup_file" , "rb") as file :
                 await context.bot.send_chat_action(chat_id , ChatAction.UPLOAD_DOCUMENT)
                 await context.bot.send_document(chat_id , file , caption="BackUp File" , connect_timeout = 5000)
         await admin_handler(query , context)
@@ -56,12 +63,12 @@ async def query_handler(update : Update , context : CallbackContext) :
         context.user_data['action'] = 'send'
     elif data == "change_status" :
         if status == True :
-            chat_id_str = str(chat_id)
-            with open("./id.txt" , "r+") as file :
-                for line in file :
-                    id = line.strip()
-                    if id == chat_id_str :
-                        print("باید پاک بشه")
+            query = "DELETE FROM users WHERE chat_id = " + chat_id_str
+            cursor.execute(query)
+            db.commit()
+            await context.bot.sendMessage(chat_id , "ربات برای شما غیرفعال شد")
+        elif status == False :
+            await start(query , context)
 
 
 async def text_handler (update : Update , context : CallbackContext) :
@@ -74,6 +81,9 @@ async def text_handler (update : Update , context : CallbackContext) :
 #start and user interface:
         
 async def start (update : Update , context : CallbackContext) :
+    global db
+    global cursor
+    global status
     chat_id = update.message.chat_id
     fisrname = update.message.chat.first_name
     lastname = update.message.chat.last_name
@@ -81,12 +91,19 @@ async def start (update : Update , context : CallbackContext) :
         fisrname = " "
     if lastname == None :
         lastname = " "
-    
-    with open("./id.txt" , "a" ) as file :
-        file.write(str(chat_id)+"\n")
+    status_check_in_database(chat_id)
+    if status == False :
+        query = "INSERT INTO users (name, chat_id) VALUES (%s, %s)"
+        values = (fisrname+" " + lastname, chat_id)
+        cursor.execute(query, values)
+        db.commit()
+        await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
+        await context.bot.sendMessage(chat_id , " سلام " + str(fisrname) + " " + str(lastname) + "خوش آمدی")
+        await context.bot.sendMessage(chat_id , "بات با موفقیت برای شما فعال شد")
+
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    await context.bot.sendMessage(chat_id , " سلام " + str(fisrname) + " " + str(lastname))
-    await context.bot.sendMessage(chat_id , "بات با موفقیت برای شما فعال شد")
+    #await context.bot.sendMessage(chat_id , " سلام " + str(fisrname) + " " + str(lastname))
+    #await context.bot.sendMessage(chat_id , "بات با موفقیت برای شما فعال شد")
     await user_menu(update , context)
 
 async def user_menu(update : Update , context : CallbackContext) :
@@ -94,23 +111,31 @@ async def user_menu(update : Update , context : CallbackContext) :
         ["مشاهده وضعیت"] ,
         ["درباره"]
     ]
-    # یک ورودی دیگه ای که کیبورد مارکاپ میشه بهش داد برای اینکه هروقت یک گزینه زد کیبورد بره پایین :
-    # one_time_keyboard=True
-    await update.message.reply_text(text="منو اصلی" , reply_markup=ReplyKeyboardMarkup(buttons , resize_keyboard=True))
+    await update.message.reply_text(text="منو اصلی :" , reply_markup=ReplyKeyboardMarkup(buttons , resize_keyboard=True))
+
+def status_check_in_database(chat_id) :
+    global status
+    global db
+    global cursor
+    status = False
+    chat_id_str = str(chat_id)
+    query = "SELECT * FROM users"
+    cursor.execute(query)
+    records = cursor.fetchall()
+    for record in records:
+        if record[2] == chat_id_str :
+            status = True
+            break
+        else :
+            pass
+
 
 async def status_check(update : Update , context : CallbackContext) :
     global status
-    status = False
+    global db
+    global cursor
     chat_id = update.message.chat_id
-    chat_id_str = str(chat_id)
-    with open("./id.txt" , "r") as file :
-        for line in file :
-            id = line.strip()
-            if id == chat_id_str :
-                status = True
-                break
-            else :
-                pass
+    status_check_in_database(chat_id)
     if status == True :
         await context.bot.sendMessage(chat_id , "ربات برای شما فعال میباشد")
     elif status == False :
@@ -123,18 +148,6 @@ async def status_check(update : Update , context : CallbackContext) :
     await update.message.reply_text(
         text="منو" ,
         reply_markup=InlineKeyboardMarkup(buttons)) #request send to query handler
-
-def set () :
-    unilist = []
-    list = []
-    with open("./id.txt" , "r") as file :
-        for line in file :
-            id = line.strip()
-            list.append(id)
-        unilist = set(list)
-    with open ("./id.txt" , "w") as file :
-        for i in unilist :
-            file.write(i + "\n") 
 
 def main () :
     application = ApplicationBuilder().token(token).build()
