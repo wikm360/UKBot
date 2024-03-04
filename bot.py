@@ -8,6 +8,15 @@ from telegram import InlineKeyboardMarkup
 from telegram import InlineKeyboardButton
 from telegram.ext import CallbackQueryHandler
 from telegram.ext import ConversationHandler
+import mysql.connector
+
+db = mysql.connect(
+    host = "localhost",
+    user = "root",
+    passwd = "dbms"
+)
+
+print(db)
 
 token = "7029093646:AAFqi8sFOTpJS_t-7GKYRLVZOuyajJa2xWw"
 status = bool
@@ -52,7 +61,7 @@ async def query_handler(update : Update , context : CallbackContext) :
                 for line in file :
                     id = line.strip()
                     if id == chat_id_str :
-                        del file(line)
+                        print("باید پاک بشه")
 
 
 async def text_handler (update : Update , context : CallbackContext) :
@@ -113,7 +122,7 @@ async def status_check(update : Update , context : CallbackContext) :
         ]
     await update.message.reply_text(
         text="منو" ,
-        reply_markup=InlineKeyboardMarkup(buttons))
+        reply_markup=InlineKeyboardMarkup(buttons)) #request send to query handler
 
 def set () :
     unilist = []
