@@ -108,10 +108,22 @@ async def start (update : Update , context : CallbackContext) :
 
 async def user_menu(update : Update , context : CallbackContext) :
     buttons = [
+        ["تقویم آموزشی ترم"],
         ["مشاهده وضعیت"] ,
         ["درباره"]
     ]
     await update.message.reply_text(text="منو اصلی :" , reply_markup=ReplyKeyboardMarkup(buttons , resize_keyboard=True))
+
+async def send_calendar(update : Update , context : CallbackContext) :
+    chat_id = update.message.chat_id
+    with open ("./calendar.jpg" , "rb") as file :
+        await context.bot.send_chat_action(chat_id , ChatAction.UPLOAD_PHOTO)
+        await context.bot.sendPhoto(chat_id , file , caption="تقویم آموزشی" , connect_timeout = 5000)
+
+async def about(update : Update , context : CallbackContext) :
+    chat_id = update.message.chat_id
+    await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
+    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️")
 
 def status_check_in_database(chat_id) :
     global status
@@ -146,7 +158,7 @@ async def status_check(update : Update , context : CallbackContext) :
             ]
         ]
     await update.message.reply_text(
-        text="منو" ,
+        text="عملیات :" ,
         reply_markup=InlineKeyboardMarkup(buttons)) #request send to query handler
 
 def main () :
@@ -156,7 +168,9 @@ def main () :
 
     application.add_handler(CallbackQueryHandler(query_handler))
 
+    application.add_handler(MessageHandler(filters.Regex("تقویم آموزشی ترم") , send_calendar))
     application.add_handler(MessageHandler(filters.Regex("مشاهده وضعیت") , status_check))
+    application.add_handler(MessageHandler(filters.Regex("درباره") , about))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND , text_handler))
 
     application.run_polling()
