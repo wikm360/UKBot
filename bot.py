@@ -10,7 +10,8 @@ from telegram.ext import CallbackQueryHandler
 from telegram.ext import ConversationHandler
 
 token = "7029093646:AAFqi8sFOTpJS_t-7GKYRLVZOuyajJa2xWw"
-
+status = bool
+# admin interface :
 async def admin_handler (update : Update , context : CallbackContext) :
     admin_chat = 877591460
     chat_id = update.message.chat_id
@@ -30,6 +31,7 @@ async def admin_handler (update : Update , context : CallbackContext) :
         )
 
 async def query_handler(update : Update , context : CallbackContext) :
+    global status
     admin_chat = 877591460
     query = update.callback_query
     data = query.data
@@ -43,6 +45,15 @@ async def query_handler(update : Update , context : CallbackContext) :
     elif data == "send_to_all" :
         await context.bot.sendMessage(chat_id , "پیام موردنظر را وارد کنید : ")
         context.user_data['action'] = 'send'
+    elif data == "change_status" :
+        if status == True :
+            chat_id_str = str(chat_id)
+            with open("./id.txt" , "r+") as file :
+                for line in file :
+                    id = line.strip()
+                    if id == chat_id_str :
+                        del file(line)
+
 
 async def text_handler (update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
@@ -51,7 +62,7 @@ async def text_handler (update : Update , context : CallbackContext) :
         await context.bot.sendMessage(chat_id , name)
         context.user_data['action'] = " "
 
-#start and user :
+#start and user interface:
         
 async def start (update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
@@ -66,7 +77,43 @@ async def start (update : Update , context : CallbackContext) :
         file.write(str(chat_id)+"\n")
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
     await context.bot.sendMessage(chat_id , " سلام " + str(fisrname) + " " + str(lastname))
-    await context.bot.sendMessage(chat_id , "به ربات اضافه شدید")
+    await context.bot.sendMessage(chat_id , "بات با موفقیت برای شما فعال شد")
+    await user_menu(update , context)
+
+async def user_menu(update : Update , context : CallbackContext) :
+    buttons = [
+        ["مشاهده وضعیت"] ,
+        ["درباره"]
+    ]
+    # یک ورودی دیگه ای که کیبورد مارکاپ میشه بهش داد برای اینکه هروقت یک گزینه زد کیبورد بره پایین :
+    # one_time_keyboard=True
+    await update.message.reply_text(text="منو اصلی" , reply_markup=ReplyKeyboardMarkup(buttons , resize_keyboard=True))
+
+async def status_check(update : Update , context : CallbackContext) :
+    global status
+    status = False
+    chat_id = update.message.chat_id
+    chat_id_str = str(chat_id)
+    with open("./id.txt" , "r") as file :
+        for line in file :
+            id = line.strip()
+            if id == chat_id_str :
+                status = True
+                break
+            else :
+                pass
+    if status == True :
+        await context.bot.sendMessage(chat_id , "ربات برای شما فعال میباشد")
+    elif status == False :
+        await context.bot.sendMessage(chat_id , "ربات برای شما فعال نمیباشد")
+    buttons = [
+            [
+                InlineKeyboardButton("تغییر وضعیت" , callback_data="change_status")
+            ]
+        ]
+    await update.message.reply_text(
+        text="منو" ,
+        reply_markup=InlineKeyboardMarkup(buttons))
 
 def set () :
     unilist = []
@@ -87,6 +134,7 @@ def main () :
 
     application.add_handler(CallbackQueryHandler(query_handler))
 
+    application.add_handler(MessageHandler(filters.Regex("مشاهده وضعیت") , status_check))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND , text_handler))
 
     application.run_polling()
