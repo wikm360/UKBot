@@ -10,6 +10,8 @@ from telegram.ext import CallbackQueryHandler
 from telegram.ext import ConversationHandler
 import mysql.connector
 import subprocess
+import requests
+
 user = "wikm"
 password = "Mdmd@1383"
 host = "127.0.0.1"
@@ -20,6 +22,7 @@ cursor = db.cursor()
 
 token = "7029093646:AAFqi8sFOTpJS_t-7GKYRLVZOuyajJa2xWw"
 status = bool
+list_users = []
 # admin interface :
 async def admin_handler (update : Update , context : CallbackContext) :
     admin_chat = 877591460
@@ -70,13 +73,35 @@ async def query_handler(update : Update , context : CallbackContext) :
         elif status == False :
             await start(query , context)
 
+def get_from_db() :
+    global user ,password ,host ,database 
+    db = mysql.connector.connect(user=user, password=password,
+                                host=host , database = database)
+    cursor = db.cursor()
+    global list_users
+
+    query = "SELECT chat_id FROM users"
+    ## getting records from the table
+    cursor.execute(query)
+    ## fetching all records from the 'cursor' object
+    records = cursor.fetchall()
+    ## Showing the data
+    for record in records:
+        list_users.append(str(record).split("(")[1].split(")")[0].split(",")[0].split("'")[1])
+    return list_users
 
 async def text_handler (update : Update , context : CallbackContext) :
+    global token
     chat_id = update.message.chat_id
     if context.user_data['action'] == "send" :
-        name = update.message.text
-        await context.bot.sendMessage(chat_id , name)
+        text = update.message.text
         context.user_data['action'] = " "
+        get_from_db()
+        for user in list_users :
+            requests.get("https://api.telegram.org/bot" + token + "/sendMessage" + "?chat_id=" + user + "&text=" + text)
+        list_users.clear()
+        print(list_users)
+
 
 #start and user interface:
         
@@ -100,16 +125,13 @@ async def start (update : Update , context : CallbackContext) :
         await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
         await context.bot.sendMessage(chat_id , " سلام " + str(fisrname) + " " + str(lastname) + "خوش آمدی")
         await context.bot.sendMessage(chat_id , "بات با موفقیت برای شما فعال شد")
-
-    await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    #await context.bot.sendMessage(chat_id , " سلام " + str(fisrname) + " " + str(lastname))
-    #await context.bot.sendMessage(chat_id , "بات با موفقیت برای شما فعال شد")
     await user_menu(update , context)
 
 async def user_menu(update : Update , context : CallbackContext) :
     buttons = [
+        ["مشاهده وضعیت"],
         ["تقویم آموزشی ترم"],
-        ["مشاهده وضعیت"] ,
+        ["ویژگی های ربات"],
         ["درباره"]
     ]
     await update.message.reply_text(text="منو اصلی :" , reply_markup=ReplyKeyboardMarkup(buttons , resize_keyboard=True))
@@ -120,10 +142,23 @@ async def send_calendar(update : Update , context : CallbackContext) :
         await context.bot.send_chat_action(chat_id , ChatAction.UPLOAD_PHOTO)
         await context.bot.sendPhoto(chat_id , file , caption="تقویم آموزشی" , connect_timeout = 5000)
 
+async def Features(update : Update , context : CallbackContext) :
+    chat_id = update.message.chat_id
+    await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
+    await context.bot.sendMessage(chat_id , '''ویژگی های ربات : \n 
+    ۱-ارسال پیام هفتگی برای رزرو غدا هر چهارشنبه \n 
+    ۲-ارسال پیام یادآوری در مواقع خاص مانند : \n
+        -انتخاب واحد اصلی \n
+        -انتخاب واحد مقدماتی \n
+        -نظرسنجی اساتید \n
+        -حذف اضطراری تک درس \n
+-نظرسنجی استاد راهنما\n
+        \n''')
+
 async def about(update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️")
+    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️" )
 
 def status_check_in_database(chat_id) :
     global status
@@ -170,6 +205,7 @@ def main () :
 
     application.add_handler(MessageHandler(filters.Regex("تقویم آموزشی ترم") , send_calendar))
     application.add_handler(MessageHandler(filters.Regex("مشاهده وضعیت") , status_check))
+    application.add_handler(MessageHandler(filters.Regex("ویژگی های ربات") , Features))
     application.add_handler(MessageHandler(filters.Regex("درباره") , about))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND , text_handler))
 

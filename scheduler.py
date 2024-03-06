@@ -38,6 +38,7 @@ def send_message_specific () :
     global Token
     global list
     global date
+    get_from_db()
     with open ("./date.txt" , "r") as file :
         for line in file :
             date = line.split(",")[0].strip()
@@ -45,7 +46,9 @@ def send_message_specific () :
             specific_date = datetime.strptime(date, '%Y-%m-%d') 
             current_date = datetime.now()
             if specific_date.date() == current_date.date():
-                requests.get("https://api.telegram.org/bot" + Token + "/sendMessage" + "?chat_id=" + "877591460" + "&text=" + " یادآوری " + event)
+                for user in list :
+                    requests.get("https://api.telegram.org/bot" + Token + "/sendMessage" + "?chat_id=" + user + "&text=" + " یادآوری " + event)
+                list.clear()
 
 def main() :
     schedule.every().wednesday.at("09:00" , timezone("Asia/Tehran")).do(send_message_every)
