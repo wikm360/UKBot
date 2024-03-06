@@ -52,7 +52,7 @@ def send_message_specific () :
 
 def main() :
     schedule.every().wednesday.at("09:00" , timezone("Asia/Tehran")).do(send_message_every)
-    schedule.every().tuesday.at("08:00" , timezone("Asia/Tehran")).do(send_message_specific)
+    schedule.every().day.at("08:00" , timezone("Asia/Tehran")).do(send_message_specific)
     while True :
         schedule.run_pending()
         time.sleep(1)

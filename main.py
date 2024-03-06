@@ -42,12 +42,7 @@ async def admin_handler (update : Update , context : CallbackContext) :
         )
 
 async def query_handler(update : Update , context : CallbackContext) :
-    global user
-    global password
-    global database
-    global db
-    global cursor
-    global status
+    global user , password , database , db , cursor , status
     admin_chat = 877591460
     query = update.callback_query
     data = query.data
@@ -158,7 +153,7 @@ async def Features(update : Update , context : CallbackContext) :
 async def about(update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️" )
+    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V1.1" )
 
 def status_check_in_database(chat_id) :
     global status
