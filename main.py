@@ -32,8 +32,16 @@ async def admin_handler (update : Update , context : CallbackContext) :
         await context.bot.sendMessage(chat_id , "سلام گلم . به محیط ادمین خوش آمدی")
         buttons = [
             [
-                InlineKeyboardButton("ارسال بکاپ" , callback_data="send_backup"),
+                InlineKeyboardButton("ارسال بکاپ" , callback_data="send_backup")
+            ],
+            [
                 InlineKeyboardButton("ارسال پیام همگانی" , callback_data="send_to_all")
+            ],
+            [
+                InlineKeyboardButton("حذف و اضافه کردن تاریخ" , callback_data="delete_add_date")
+            ],
+            [
+                InlineKeyboardButton("اضافه کردن تاریخ جدید" , callback_data="add_date")
             ]
         ]
         await update.message.reply_text(
@@ -67,6 +75,12 @@ async def query_handler(update : Update , context : CallbackContext) :
             await context.bot.sendMessage(chat_id , "ربات برای شما غیرفعال شد")
         elif status == False :
             await start(query , context)
+    elif data == "delete_add_date" :
+        await context.bot.sendMessage(chat_id , "پیام موردنظر را وارد کنید :\n YY-MM-DD , Event ")
+        context.user_data['action'] = 'rewrite_dates'
+    elif data == "add_date" :
+        await context.bot.sendMessage(chat_id , "پیام موردنظر را وارد کنید :\n YY-MM-DD , Event ")
+        context.user_data['action'] = 'append_dates'
 
 def get_from_db() :
     global user ,password ,host ,database 
@@ -95,7 +109,19 @@ async def text_handler (update : Update , context : CallbackContext) :
         for user in list_users :
             requests.get("https://api.telegram.org/bot" + token + "/sendMessage" + "?chat_id=" + user + "&text=" + text)
         list_users.clear()
-        print(list_users)
+        await context.bot.sendMessage(chat_id , "successful")
+    if context.user_data['action'] == "rewrite_dates" :
+        text = update.message.text
+        context.user_data['action'] = " "
+        with open ("./test.txt" , "w") as file :
+            file.write(text)
+            await context.bot.sendMessage(chat_id , "successful")
+    if context.user_data['action'] == "append_dates" :
+        text = update.message.text
+        context.user_data['action'] = " "
+        with open ("./test.txt" , "a") as file :
+            file.write("\n" + text)
+            await context.bot.sendMessage(chat_id , "successful")
 
 
 #start and user interface:
@@ -153,7 +179,7 @@ async def Features(update : Update , context : CallbackContext) :
 async def about(update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V1.1" )
+    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V1.5" )
 
 def status_check_in_database(chat_id) :
     global status
@@ -202,6 +228,7 @@ def main () :
     application.add_handler(MessageHandler(filters.Regex("مشاهده وضعیت") , status_check))
     application.add_handler(MessageHandler(filters.Regex("ویژگی های ربات") , Features))
     application.add_handler(MessageHandler(filters.Regex("درباره") , about))
+
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND , text_handler))
 
     application.run_polling()
