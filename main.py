@@ -73,6 +73,7 @@ async def query_handler(update : Update , context : CallbackContext) :
             cursor.execute(query)
             db.commit()
             await context.bot.sendMessage(chat_id , "ربات برای شما غیرفعال شد")
+            status = False
         elif status == False :
             await start(query , context)
     elif data == "delete_add_date" :
