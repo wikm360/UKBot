@@ -11,13 +11,14 @@ from telegram.ext import ConversationHandler
 import mysql.connector
 import subprocess
 import requests
+from databasedetail import user_input , password_input , host_input , database_input
 
-user = "wikm"
-password = "Mdmd@1383"
-host = "127.0.0.1"
-database = "UKCalendar"
-db = mysql.connector.connect(user=user, password=password,
-                              host=host , database = database)
+# user = "wikm"
+# password = "Mdmd@1383"
+# host = "127.0.0.1"
+# database = "UKCalendar"
+db = mysql.connector.connect(user=user_input, password=password_input,
+                              host=host_input , database = database_input)
 cursor = db.cursor()
 
 token = "7029093646:AAFqi8sFOTpJS_t-7GKYRLVZOuyajJa2xWw"
@@ -50,7 +51,7 @@ async def admin_handler (update : Update , context : CallbackContext) :
         )
 
 async def query_handler(update : Update , context : CallbackContext) :
-    global user , password , database , db , cursor , status
+    global user_input , password_input , database_input , db , cursor , status
     admin_chat = 877591460
     query = update.callback_query
     data = query.data
@@ -59,7 +60,7 @@ async def query_handler(update : Update , context : CallbackContext) :
     if data == "send_backup" :
         if chat_id == admin_chat :
             with open("./backup_file", 'wb') as file:
-                subprocess.run(['mysqldump', '-u', user, '-p' + password, database], stdout=file)
+                subprocess.run(['mysqldump', '-u', user_input, '-p' + password_input, database_input], stdout=file)
             with open ("./backup_file" , "rb") as file :
                 await context.bot.send_chat_action(chat_id , ChatAction.UPLOAD_DOCUMENT)
                 await context.bot.send_document(chat_id , file , caption="BackUp File" , connect_timeout = 5000)
@@ -75,7 +76,19 @@ async def query_handler(update : Update , context : CallbackContext) :
             await context.bot.sendMessage(chat_id , "ربات برای شما غیرفعال شد")
             status = False
         elif status == False :
-            await start(query , context)
+            fisrname = query.message.chat.first_name
+            lastname = query.message.chat.last_name
+            if fisrname == None :
+                fisrname = " "
+            if lastname == None :
+                lastname = " "
+            query = "INSERT INTO users (name, chat_id) VALUES (%s, %s)"
+            values = (fisrname+" " + lastname, chat_id)
+            cursor.execute(query, values)
+            db.commit()
+            status = True
+            await context.bot.sendMessage(chat_id , "ربات برای شما فعال شد")
+            #await start(query , context)
     elif data == "delete_add_date" :
         await context.bot.sendMessage(chat_id , "پیام موردنظر را وارد کنید :\n YY-MM-DD , Event ")
         context.user_data['action'] = 'rewrite_dates'
@@ -84,9 +97,9 @@ async def query_handler(update : Update , context : CallbackContext) :
         context.user_data['action'] = 'append_dates'
 
 def get_from_db() :
-    global user ,password ,host ,database 
-    db = mysql.connector.connect(user=user, password=password,
-                                host=host , database = database)
+    global user_input ,password_input ,host_input ,database_input
+    db = mysql.connector.connect(user=user_input, password=password_input,
+                                host=host_input , database = database_input)
     cursor = db.cursor()
     global list_users
 
@@ -180,7 +193,7 @@ async def Features(update : Update , context : CallbackContext) :
 async def about(update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V1.5" )
+    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V1.6" )
 
 def status_check_in_database(chat_id) :
     global status

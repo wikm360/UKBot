@@ -4,13 +4,15 @@ from pytz import timezone
 import time
 from datetime import datetime
 import mysql.connector
+from databasedetail import user_input , password_input , host_input , database_input
 
 Token = "7029093646:AAFqi8sFOTpJS_t-7GKYRLVZOuyajJa2xWw"
 list = []
 date = []
 
 def get_from_db() :
-    user = "wikm";password = "Mdmd@1383";host = "127.0.0.1";database = "UKCalendar"
+    global user_input , password_input , host_input , database_input
+    user = user_input;password = password_input;host = host_input;database = database_input
     db = mysql.connector.connect(user=user, password=password,
                                 host=host , database = database)
     cursor = db.cursor()
