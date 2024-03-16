@@ -12,9 +12,8 @@ date = []
 
 def get_from_db() :
     global user_input , password_input , host_input , database_input
-    user = user_input;password = password_input;host = host_input;database = database_input
-    db = mysql.connector.connect(user=user, password=password,
-                                host=host , database = database)
+    db = mysql.connector.connect(user=user_input, password=password_input,
+                                host=host_input , database = database_input)
     cursor = db.cursor()
     global list
 
