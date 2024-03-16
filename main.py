@@ -193,7 +193,7 @@ async def Features(update : Update , context : CallbackContext) :
 async def about(update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V1.6" )
+    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V1.7" )
 
 def status_check_in_database(chat_id) :
     global status
