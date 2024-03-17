@@ -11,7 +11,11 @@ from telegram.ext import ConversationHandler
 import mysql.connector
 import subprocess
 import requests
+import logging
 from databasedetail import user_input , password_input , host_input , database_input
+
+logging.basicConfig(filename='error.log', level=logging.ERROR,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # user = "wikm"
 # password = "Mdmd@1383"
@@ -231,6 +235,9 @@ async def status_check(update : Update , context : CallbackContext) :
         text="عملیات :" ,
         reply_markup=InlineKeyboardMarkup(buttons)) #request send to query handler
 
+def error(update:Update , context : CallbackContext) :
+    logging.warning('Update "%s" caused error "%s"', update, context.error)
+
 def main () :
     application = ApplicationBuilder().token(token).build()
     application.add_handler(CommandHandler("start" , start))
@@ -244,6 +251,8 @@ def main () :
     application.add_handler(MessageHandler(filters.Regex("درباره") , about))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND , text_handler))
+
+    application.add_error_handler(error)
 
     application.run_polling()
 
