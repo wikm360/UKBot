@@ -12,7 +12,7 @@ import mysql.connector
 import subprocess
 import requests
 import logging
-from databasedetail import user_input , password_input , host_input , database_input
+from databasedetail import user_input , password_input , host_input , database_input , token
 
 logging.basicConfig(filename='error.log', level=logging.ERROR,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -21,11 +21,7 @@ logging.basicConfig(filename='error.log', level=logging.ERROR,
 # password = "Mdmd@1383"
 # host = "127.0.0.1"
 # database = "UKCalendar"
-db = mysql.connector.connect(user=user_input, password=password_input,
-                              host=host_input , database = database_input)
-cursor = db.cursor()
 
-token = "7029093646:AAFqi8sFOTpJS_t-7GKYRLVZOuyajJa2xWw"
 status = bool
 list_users = []
 # admin interface :
@@ -55,7 +51,7 @@ async def admin_handler (update : Update , context : CallbackContext) :
         )
 
 async def query_handler(update : Update , context : CallbackContext) :
-    global user_input , password_input , database_input , db , cursor , status
+    global user_input , password_input , database_input , status
     admin_chat = 877591460
     query = update.callback_query
     data = query.data
@@ -74,12 +70,18 @@ async def query_handler(update : Update , context : CallbackContext) :
         context.user_data['action'] = 'send'
     elif data == "change_status" :
         if status == True :
+            db = mysql.connector.connect(user=user_input, password=password_input,
+                              host=host_input , database = database_input)
+            cursor = db.cursor()
             query = "DELETE FROM users WHERE chat_id = " + chat_id_str
             cursor.execute(query)
             db.commit()
             await context.bot.sendMessage(chat_id , "ربات برای شما غیرفعال شد")
             status = False
         elif status == False :
+            db = mysql.connector.connect(user=user_input, password=password_input,
+                              host=host_input , database = database_input)
+            cursor = db.cursor()
             fisrname = query.message.chat.first_name
             lastname = query.message.chat.last_name
             if fisrname == None :
@@ -145,8 +147,9 @@ async def text_handler (update : Update , context : CallbackContext) :
 #start and user interface:
         
 async def start (update : Update , context : CallbackContext) :
-    global db
-    global cursor
+    db = mysql.connector.connect(user=user_input, password=password_input,
+                              host=host_input , database = database_input)
+    cursor = db.cursor()
     global status
     chat_id = update.message.chat_id
     fisrname = update.message.chat.first_name
@@ -197,12 +200,13 @@ async def Features(update : Update , context : CallbackContext) :
 async def about(update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V1.8" )
+    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V1.9" )
 
 def status_check_in_database(chat_id) :
+    db = mysql.connector.connect(user=user_input, password=password_input,
+                              host=host_input , database = database_input)
+    cursor = db.cursor()
     global status
-    global db
-    global cursor
     status = False
     chat_id_str = str(chat_id)
     query = "SELECT * FROM users"
@@ -218,8 +222,6 @@ def status_check_in_database(chat_id) :
 
 async def status_check(update : Update , context : CallbackContext) :
     global status
-    global db
-    global cursor
     chat_id = update.message.chat_id
     status_check_in_database(chat_id)
     if status == True :
@@ -235,7 +237,7 @@ async def status_check(update : Update , context : CallbackContext) :
         text="عملیات :" ,
         reply_markup=InlineKeyboardMarkup(buttons)) #request send to query handler
 
-def error(update:Update , context : CallbackContext) :
+async def error(update:Update , context : CallbackContext) :
     logging.warning('Update "%s" caused error "%s"', update, context.error)
 
 def main () :

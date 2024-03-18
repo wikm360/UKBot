@@ -4,9 +4,8 @@ from pytz import timezone
 import time
 from datetime import datetime
 import mysql.connector
-from databasedetail import user_input , password_input , host_input , database_input
+from databasedetail import user_input , password_input , host_input , database_input , token
 
-Token = "7029093646:AAFqi8sFOTpJS_t-7GKYRLVZOuyajJa2xWw"
 list = []
 date = []
 
@@ -28,15 +27,15 @@ def get_from_db() :
     return list
 
 def send_message_every () :
-    global Token
+    global token
     global list
     get_from_db()
     for user in list :
-        requests.get("https://api.telegram.org/bot" + Token + "/sendMessage" + "?chat_id=" + user + "&text=" + "برای هفته آینده غذا رزرو کنید")
+        requests.get("https://api.telegram.org/bot" + token + "/sendMessage" + "?chat_id=" + user + "&text=" + "برای هفته آینده غذا رزرو کنید")
     list.clear()
 
 def send_message_specific () :
-    global Token
+    global token
     global list
     global date
     get_from_db()
@@ -48,7 +47,7 @@ def send_message_specific () :
             current_date = datetime.now()
             if specific_date.date() == current_date.date():
                 for user in list :
-                    requests.get("https://api.telegram.org/bot" + Token + "/sendMessage" + "?chat_id=" + user + "&text=" + " یادآوری " + event)
+                    requests.get("https://api.telegram.org/bot" + token + "/sendMessage" + "?chat_id=" + user + "&text=" + " یادآوری " + event)
                 list.clear()
 
 def main() :
