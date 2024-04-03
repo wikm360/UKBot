@@ -6,7 +6,7 @@ from datetime import datetime
 import mysql.connector
 from databasedetail import user_input , password_input , host_input , database_input , token
 
-list = []
+list_users = []
 date = []
 
 def get_from_db() :
@@ -14,29 +14,29 @@ def get_from_db() :
     db = mysql.connector.connect(user=user_input, password=password_input,
                                 host=host_input , database = database_input)
     cursor = db.cursor()
-    global list
+    global list_users
 
     query = "SELECT chat_id FROM users"
     ## getting records from the table
     cursor.execute(query)
     ## fetching all records from the 'cursor' object
     records = cursor.fetchall()
-    ## Showing the data
+    list_users.clear()
     for record in records:
-        list.append(str(record).split("(")[1].split(")")[0].split(",")[0].split("'")[1])
-    return list
+        list_users.append(str(record).split("(")[1].split(")")[0].split(",")[0].split("'")[1])
 
 def send_message_every () :
     global token
-    global list
+    global list_users
     get_from_db()
-    for user in list :
+    print(list_users)
+    for user in list_users :
         requests.get("https://api.telegram.org/bot" + token + "/sendMessage" + "?chat_id=" + user + "&text=" + "برای هفته آینده غذا رزرو کنید")
-    list.clear()
+    list_users.clear()
 
 def send_message_specific () :
     global token
-    global list
+    global list_users
     global date
     get_from_db()
     with open ("./date.txt" , "r") as file :
@@ -46,9 +46,10 @@ def send_message_specific () :
             specific_date = datetime.strptime(date, '%Y-%m-%d') 
             current_date = datetime.now()
             if specific_date.date() == current_date.date():
-                for user in list :
+                for user in list_users :
                     requests.get("https://api.telegram.org/bot" + token + "/sendMessage" + "?chat_id=" + user + "&text=" + " یادآوری " + event)
-                list.clear()
+                list_users.clear()
+            list_users.clear()
 
 def main() :
     schedule.every().wednesday.at("09:00" , timezone("Asia/Tehran")).do(send_message_every)

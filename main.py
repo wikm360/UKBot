@@ -17,11 +17,6 @@ from databasedetail import user_input , password_input , host_input , database_i
 logging.basicConfig(filename='error.log', level=logging.ERROR,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-# user = "wikm"
-# password = "Mdmd@1383"
-# host = "127.0.0.1"
-# database = "UKCalendar"
-
 status = bool
 list_users = []
 # admin interface :
