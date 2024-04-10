@@ -1,5 +1,6 @@
 import requests
 import schedule
+import subprocess
 from pytz import timezone
 import time
 from datetime import datetime
@@ -51,9 +52,24 @@ def send_message_specific () :
                 list_users.clear()
             list_users.clear()
 
+def send_backup () : 
+    global token
+    admin_chat = '877591460'
+    with open("./backup_file", 'wb') as file:
+        subprocess.run(['mysqldump', '-u', user_input, '-p' + password_input, database_input], stdout=file)
+    file_path = '/backup_file'
+    url = f'https://api.telegram.org/bot{token}/sendDocument'
+    with open(file_path, 'rb') as file:
+        files = {'document': file}
+        data = {'chat_id': admin_chat}
+        response = requests.get(url, files=files, data=data)
+    
+    print(response.json())
+
 def main() :
     schedule.every().wednesday.at("09:00" , timezone("Asia/Tehran")).do(send_message_every)
     schedule.every().day.at("08:00" , timezone("Asia/Tehran")).do(send_message_specific)
+    schedule.every().day.at("00:00" , timezone("Asia/Tehran")).do(send_backup)
     while True :
         schedule.run_pending()
         time.sleep(1)

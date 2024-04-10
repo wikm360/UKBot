@@ -21,7 +21,7 @@ Before installing the required libraries, you must first install Python and pip
 First, download and extract the project with the following command :
 
 ```bash
-  wget https://github.com/wikm360/UK-Calendar/releases/download/v1.6/UK-calendar.zip
+  wget https://github.com/wikm360/UK-Calendar/releases/download/v2.1/UK-calendar.zip
   unzip UK-calendar
   cd UK-calendar/
 ```
