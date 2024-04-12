@@ -57,9 +57,8 @@ def send_backup () :
     admin_chat = '877591460'
     with open("./backup_file", 'wb') as file:
         subprocess.run(['mysqldump', '-u', user_input, '-p' + password_input, database_input], stdout=file)
-    file_path = '/backup_file'
     url = f'https://api.telegram.org/bot{token}/sendDocument'
-    with open(file_path, 'rb') as file:
+    with open("./backup_file", 'rb') as file:
         files = {'document': file}
         data = {'chat_id': admin_chat}
         response = requests.get(url, files=files, data=data)
