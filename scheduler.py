@@ -68,7 +68,7 @@ def send_backup () :
 def main() :
     schedule.every().wednesday.at("09:00" , timezone("Asia/Tehran")).do(send_message_every)
     schedule.every().day.at("08:00" , timezone("Asia/Tehran")).do(send_message_specific)
-    schedule.every().day.at("00:00" , timezone("Asia/Tehran")).do(send_backup)
+    schedule.every().day.at("23:00" , timezone("Asia/Tehran")).do(send_backup)
     while True :
         schedule.run_pending()
         time.sleep(1)
