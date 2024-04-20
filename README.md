@@ -22,8 +22,8 @@ First, download and extract the project with the following command :
 
 ```bash
   wget https://github.com/wikm360/UK-Calendar/releases/download/v2.1/UK-calendar.zip
-  unzip UK-calendar
-  cd UK-calendar/
+  unzip UK-Calendar.zip
+  cd UK-Calendar/
 ```
 
 ## Change databese Variable
