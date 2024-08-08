@@ -18,6 +18,15 @@ from pytz import timezone
 import time
 from datetime import datetime
 import threading
+from selenium.webdriver.common.by import By
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from urllib.parse import unquote_plus
+import time
+from PIL import Image, ImageEnhance, ImageFilter
+import pytesseract
 
 logging.basicConfig(filename='error.log', level=logging.ERROR,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -109,7 +118,7 @@ def get_from_db() :
                                 host=host_input , database = database_input)
     cursor = db.cursor()
     global list_users
-
+    
     query = "SELECT chat_id FROM users"
     ## getting records from the table
     cursor.execute(query)
@@ -117,10 +126,37 @@ def get_from_db() :
     records = cursor.fetchall()
     list_users.clear()
     for record in records:
-        list_users.append(str(record).split("(")[1].split(")")[0].split(",")[0].split("'")[1])
+        try :
+            r = str(record).split("(")[1].split(")")[0].split(",")[0].split("'")[1]
+            list_users.append(r)
+        except :
+            pass
     return list_users
 
 async def text_handler (update : Update , context : CallbackContext) :
+
+    if 'next_step' in context.user_data:
+            next_step = context.user_data['next_step']
+            if next_step == 'get_username':
+                del context.user_data['next_step']  # پاک کردن وضعیت بعد از اجرا
+                await get_username(update, context)
+            if next_step == 'get_password':
+                del context.user_data['next_step']  # پاک کردن وضعیت بعد از اجرا
+                await get_password(update, context)
+                
+
+    # user = update.message.from_user
+    # text = update.message.text
+    # # چک کردن پیام یوزرنیم
+    # if hasattr(context.chat_data, 'username'):
+    #     context.chat_data['password'] = text
+    #     await update.message.reply_text(f"یوزرنیم: {context.chat_data['username']}\nپسورد: {context.chat_data['password']}")
+    #     del context.chat_data['username']
+    #     del context.chat_data['password']
+    # else:
+    #     context.chat_data['username'] = text
+    #     await update.message.reply_text("لطفاً پسورد خود را وارد کنید:")
+    
     global token
     chat_id = update.message.chat_id
     if context.user_data['action'] == "send" :
@@ -143,6 +179,7 @@ async def text_handler (update : Update , context : CallbackContext) :
         with open ("./test.txt" , "a") as file :
             file.write("\n" + text)
             await context.bot.sendMessage(chat_id , "successful")
+        
 
 
 #start and user interface:
@@ -175,7 +212,8 @@ async def user_menu(update : Update , context : CallbackContext) :
         ["مشاهده وضعیت"],
         ["تقویم آموزشی ترم"],
         ["ویژگی های ربات"],
-        ["درباره"]
+        ["درباره"],
+        ["تنظیم کالینان"]
     ]
     await update.message.reply_text(text="منو اصلی :" , reply_markup=ReplyKeyboardMarkup(buttons , resize_keyboard=True))
 
@@ -198,10 +236,242 @@ async def Features(update : Update , context : CallbackContext) :
 -نظرسنجی استاد راهنما\n
         \n''')
 
+
+async def setnut (update : Update , context : CallbackContext) :
+    chat_id = update.message.chat_id
+    await context.bot.sendMessage(chat_id , text="لطفاً یوزرنیم خود را وارد کنید:")
+    context.user_data['next_step'] = 'get_username'
+
+
+async def get_username(update : Update , context : CallbackContext):
+    chat_id = update.message.chat_id
+    # دریافت یوزرنیم از کاربر
+    username = update.message.text
+    await context.bot.sendMessage(chat_id , text=f"username = {username}")
+
+    # ذخیره یوزرنیم در متغیر
+    context.user_data['username'] = username
+    
+    # درخواست پسورد از کاربر
+    await context.bot.sendMessage(chat_id , text="password :")
+    context.user_data['next_step'] = 'get_password'
+
+# تابع دریافت پسورد
+async def get_password(update : Update , context : CallbackContext):
+    chat_id = update.message.chat_id
+    # دریافت پسورد از کاربر
+    password = update.message.text
+    
+    # ذخیره پسورد در متغیر
+    context.user_data['password'] = password
+
+    db = mysql.connector.connect(user=user_input, password=password_input,
+                              host=host_input , database = database_input)
+    cursor = db.cursor()
+    query = f"""
+    UPDATE users
+    SET nut_username = %s, nut_password = %s
+    WHERE chat_id = %s
+"""
+    values = (context.user_data['username'], password ,  chat_id)
+    cursor.execute(query, values)
+    db.commit()
+    
+    # ارسال یوزرنیم و پسورد به کاربر
+    await context.bot.sendMessage(chat_id , text=f"username = {context.user_data['username']}  , password = {password}")
+    
+    await start(update, context)
+
+def selenium ( max_retries, retry_delay , user , passwd , chat_id) :
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            chrome_options = Options()
+            #chrome_options.add_argument('--no-sandbox')
+            #chrome_options.add_argument('--headless')
+            chrome_options.add_argument('--disable-dev-shm-usage')
+
+            # Start a new instance of Chrome web browser
+            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()) , options=chrome_options)
+            # driver = webdriver.Chrome()
+
+
+            # Open the website
+            driver.get("https://nut.uk.ac.ir/")
+
+
+            # Find and click username
+            try:
+                time.sleep(5)
+                username = driver.find_element(By.ID,"txtUsernamePlain")
+                username.click()
+                username.clear()
+                username.click()
+                username.send_keys(user)
+                time.sleep(1)
+            except:
+                pass
+
+            # specific_option = driver.find_element(By.XPATH,type)
+            # specific_option.click()
+
+            # Find and click username
+            password = driver.find_element(By.ID,"txtPasswordPlain")
+            password.click()
+            password.clear()
+            password.click()
+            password.send_keys(passwd)
+            time.sleep(1)
+
+            #capcha
+            captcha_element = driver.find_element(By.ID,"Img1")
+            captcha_image = captcha_element.screenshot_as_png
+            with open(f"captcha_{chat_id}.png", "wb") as f:
+                f.write(captcha_image)
+            time.sleep(5)
+            image_path = f"captcha_{chat_id}.png"
+            captcha_text = extract_text_from_image(image_path)
+
+            capcha = driver.find_element(By.ID,"txtCaptcha")
+            capcha.click()
+            capcha.clear()
+            capcha.click()
+            capcha.send_keys(captcha_text)
+            time.sleep(5)
+
+            #submit
+            done = driver.find_element(By.ID,'btnEncript')
+            done.click()
+            time.sleep(5)
+            
+            # finde error element
+            try:
+                error_element = driver.find_element(By.ID, "lblLoginError")
+                error_text = error_element.text
+                if error_text == "کد امنیتی صحیح نمی باشد":
+                    print(f"Error message found: {error_text}")
+                    #return True
+                else:
+                    print("Error message not found or different.")
+                    return False
+            except:
+                print("Error element not found on the page.")
+                return False
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+        attempt += 1
+        print(f"Retrying ({attempt}/{max_retries})...")
+        time.sleep(retry_delay)
+
+    print("Max retries reached. Exiting.")
+    return False
+
+def kalinan () :
+    global user_input , password_input , host_input , database_input , list_users
+    db = mysql.connector.connect(user=user_input, password=password_input,
+                                host=host_input , database = database_input)
+    get_from_db()
+    for chat_id in list_users :
+        cursor = db.cursor()
+        query = f"SELECT nut_username FROM users WHERE chat_id={chat_id}"
+        ## getting records from the table
+        cursor.execute(query)
+        ## fetching all records from the 'cursor' object
+        user_list = cursor.fetchall()
+        query = f"SELECT nut_password FROM users WHERE chat_id={chat_id}"    
+        cursor.execute(query)
+        passwd_list = cursor.fetchall()
+        try:
+            user = str(user_list[0]).split("(")[1].split(")")[0].split(",")[0].split("'")[1]
+            passwd = str(passwd_list[0]).split("(")[1].split(")")[0].split(",")[0].split("'")[1]
+        except Exception as e:
+            print(f"Error for chat_id {chat_id}: {e}")
+            continue
+    count = 0
+    try:
+        while True:
+            if count >= 3 :
+                break
+            count +=1
+            success = selenium(3 , 2  , user=user , passwd=passwd, chat_id=chat_id)
+            if not success:
+                print("No error found or different error. Trying again...")
+            else:
+                print("Error message handled. Exiting.")
+                break
+            time.sleep(5)
+
+    finally:
+        pass
+        
+
+def preprocess_image(image_path , enhance):
+    image = Image.open(image_path)
+    
+    # تبدیل به خاکستری
+    image = image.convert('L')
+    
+    # افزایش کنتراست
+    enhancer = ImageEnhance.Contrast(image)
+    image = enhancer.enhance(enhance)
+    
+    # فیلتر کردن برای حذف نویز
+    image = image.filter(ImageFilter.MedianFilter())
+    
+    return image
+
+def count_digits(num):
+    number = int(num)
+    if number == 0:
+        return 1
+    count = 0
+    number = abs(number)
+    while number > 0:
+        number //= 10
+        count += 1
+    return count
+
+def extract_text_from_image(image_path):
+    # پیش‌پردازش تصویر
+    enhance = 2.0
+    preprocessed_image = preprocess_image(image_path  , enhance)
+    
+    # استخراج متن از تصویر با استفاده از Tesseract OCR
+    text = pytesseract.image_to_string(preprocessed_image, config='--psm 6 digits')  # تنظیم برای تشخیص اعداد
+    count = 0
+    text.strip()
+    while True :
+        if count >= 11 :
+            break
+        try :
+            int(text)
+            break
+        except :
+            enhance +=0.1
+            preprocessed_image = preprocess_image(image_path , enhance)
+            text = pytesseract.image_to_string(preprocessed_image, config='--psm 6 digits')  # تنظیم برای تشخیص اعداد
+            count +=1
+    while count_digits(text) != 4 :
+        print(f"try {count}")
+        enhance +=0.1
+        preprocessed_image = preprocess_image(image_path , enhance)
+        text = pytesseract.image_to_string(preprocessed_image, config='--psm 6 digits')  # تنظیم برای تشخیص اعداد
+        text.strip()
+        count +=1
+        if count >= 11 :
+            print("ERORR")
+            break
+    # چاپ متن استخراج‌شده
+    print("Extracted Text:", text)
+    return text.strip()
+
+
 async def about(update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V2.1" )
+    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V3.0" )
 
 def status_check_in_database(chat_id) :
     db = mysql.connector.connect(user=user_input, password=password_input,
@@ -278,10 +548,15 @@ def send_backup () :
     
     print(response.json())
 
+
+
+
+
 def schedule_message() :
     schedule.every().wednesday.at("09:00" , timezone("Asia/Tehran")).do(send_message_every)
     schedule.every().day.at("08:00" , timezone("Asia/Tehran")).do(send_message_specific)
     schedule.every().day.at("23:00" , timezone("Asia/Tehran")).do(send_backup)
+    schedule.every().monday.at("9:00" , timezone("Asia/Tehran")).do(kalinan)
 
     while True:
         schedule.run_pending()
@@ -301,6 +576,7 @@ def main () :
     application.add_handler(MessageHandler(filters.Regex("مشاهده وضعیت") , status_check))
     application.add_handler(MessageHandler(filters.Regex("ویژگی های ربات") , Features))
     application.add_handler(MessageHandler(filters.Regex("درباره") , about))
+    application.add_handler(MessageHandler(filters.Regex("تنظیم کالینان") , setnut))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND , text_handler))
 
