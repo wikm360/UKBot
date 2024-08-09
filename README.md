@@ -1,7 +1,7 @@
 
-# UK-Calendar
+# UKBot
 
-A brief description of what this project does and who it's for
+A telegram bot, automatic login and food reservation on Callinan site, reminder of food reservation, reminder of educational calendar dates and...
 
 
 ## Prerequisites
@@ -36,5 +36,5 @@ change variables with your own ...
 ## Start Bot 
 
 ```bash
-  python3 bot.py
+  python3 main.py
 ```
