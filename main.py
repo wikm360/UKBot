@@ -144,19 +144,6 @@ async def text_handler (update : Update , context : CallbackContext) :
                 del context.user_data['next_step']  # پاک کردن وضعیت بعد از اجرا
                 await get_password(update, context)
                 
-
-    # user = update.message.from_user
-    # text = update.message.text
-    # # چک کردن پیام یوزرنیم
-    # if hasattr(context.chat_data, 'username'):
-    #     context.chat_data['password'] = text
-    #     await update.message.reply_text(f"یوزرنیم: {context.chat_data['username']}\nپسورد: {context.chat_data['password']}")
-    #     del context.chat_data['username']
-    #     del context.chat_data['password']
-    # else:
-    #     context.chat_data['username'] = text
-    #     await update.message.reply_text("لطفاً پسورد خود را وارد کنید:")
-    
     global token
     chat_id = update.message.chat_id
     if context.user_data['action'] == "send" :
@@ -209,11 +196,11 @@ async def start (update : Update , context : CallbackContext) :
 
 async def user_menu(update : Update , context : CallbackContext) :
     buttons = [
-        ["مشاهده وضعیت"],
-        ["تقویم آموزشی ترم"],
+        ["مشاهده وضعیت" , "تقویم آموزشی ترم"],
+        #["تقویم آموزشی ترم"],
         ["ویژگی های ربات"],
+        ["تنظیم کالینان"],
         ["درباره"],
-        ["تنظیم کالینان"]
     ]
     await update.message.reply_text(text="منو اصلی :" , reply_markup=ReplyKeyboardMarkup(buttons , resize_keyboard=True))
 
@@ -471,7 +458,7 @@ def extract_text_from_image(image_path):
 async def about(update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V3.0" )
+    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V3.1" )
 
 def status_check_in_database(chat_id) :
     db = mysql.connector.connect(user=user_input, password=password_input,
@@ -556,7 +543,7 @@ def schedule_message() :
     schedule.every().wednesday.at("09:00" , timezone("Asia/Tehran")).do(send_message_every)
     schedule.every().day.at("08:00" , timezone("Asia/Tehran")).do(send_message_specific)
     schedule.every().day.at("23:00" , timezone("Asia/Tehran")).do(send_backup)
-    schedule.every().monday.at("9:00" , timezone("Asia/Tehran")).do(kalinan)
+    schedule.every().monday.at("09:00" , timezone("Asia/Tehran")).do(kalinan)
 
     while True:
         schedule.run_pending()
