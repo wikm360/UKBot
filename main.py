@@ -16,7 +16,8 @@ from databasedetail import user_input , password_input , host_input , database_i
 import schedule
 from pytz import timezone
 import time
-from datetime import datetime
+import datetime
+#from datetime import datetime
 import threading
 from selenium.webdriver.common.by import By
 from selenium import webdriver
@@ -111,6 +112,29 @@ async def query_handler(update : Update , context : CallbackContext) :
     elif data == "add_date" :
         await context.bot.sendMessage(chat_id , "پیام موردنظر را وارد کنید :\n YY-MM-DD , Event ")
         context.user_data['action'] = 'append_dates'
+    elif data == "confirm" :
+        db = mysql.connector.connect(user=user_input, password=password_input,
+                                    host=host_input , database = database_input)
+        cursor = db.cursor()
+
+        global list_users
+        query = update.callback_query
+        await query.answer()
+        
+        user_id = str(query.from_user.id)
+        await context.bot.sendMessage(user_id , "confirm")
+        get_from_db()
+        if user_id in list_users :
+            query = f"""
+            UPDATE users
+            SET last_reminder = %s
+            WHERE chat_id = %s
+        """
+            values = (None , chat_id)
+            cursor.execute(query, values)
+            db.commit()
+            await query.edit_message_text(text="یادآوری تایید شد. ممنون!")
+
 
 def get_from_db() :
     global user_input , password_input , host_input , database_input
@@ -274,8 +298,8 @@ def selenium ( max_retries, retry_delay , user , passwd , chat_id) :
     while attempt < max_retries:
         try:
             chrome_options = Options()
-            #chrome_options.add_argument('--no-sandbox')
-            #chrome_options.add_argument('--headless')
+            # chrome_options.add_argument('--no-sandbox')
+            # chrome_options.add_argument('--headless')
             chrome_options.add_argument('--disable-dev-shm-usage')
 
             # Start a new instance of Chrome web browser
@@ -340,10 +364,14 @@ def selenium ( max_retries, retry_delay , user , passwd , chat_id) :
                     #return True
                 else:
                     print("Error message not found or different.")
-                    return False
+                    attempt += 3
+                    break
+                    #return False
             except:
                 print("Error element not found on the page.")
-                return False
+                #return False
+                attempt += 3
+                break
 
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -376,19 +404,13 @@ def kalinan () :
         except Exception as e:
             print(f"Error for chat_id {chat_id}: {e}")
             continue
-    count = 0
     try:
-        while True:
-            if count >= 3 :
-                break
-            count +=1
-            success = selenium(3 , 2  , user=user , passwd=passwd, chat_id=chat_id)
-            if not success:
-                print("No error found or different error. Trying again...")
-            else:
-                print("Error message handled. Exiting.")
-                break
-            time.sleep(5)
+        success = selenium(3 , 2  , user=user , passwd=passwd, chat_id=chat_id)
+        if not success:
+            print("No error found or different error. Trying again...")
+        else:
+            print("Error message handled. Exiting.")
+        time.sleep(5)
 
     finally:
         pass
@@ -458,7 +480,7 @@ def extract_text_from_image(image_path):
 async def about(update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V3.1" )
+    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V3.3" )
 
 def status_check_in_database(chat_id) :
     db = mysql.connector.connect(user=user_input, password=password_input,
@@ -535,9 +557,75 @@ def send_backup () :
     
     print(response.json())
 
+async def send_reminder(context :CallbackContext):
+    global token
+    global list_users
+    get_from_db()
+    global user_input , password_input , host_input , database_input , list_users
+    db = mysql.connector.connect(user=user_input, password=password_input,
+                                host=host_input , database = database_input)
+    cursor = db.cursor()
+
+    tehran_tz = timezone('Asia/Tehran')
+    if datetime.datetime.now(tehran_tz).weekday() == 3:  # 3 یعنی پنجشنبه
+        for user in list_users :
+            query = f"SELECT last_reminder FROM users WHERE chat_id={user}"
+            ## getting records from the table
+            cursor.execute(query)
+            ## fetching all records from the 'cursor' object
+            last_reminder = cursor.fetchall()
+            print(last_reminder)
+            type(last_reminder)
+
+            keyboard = [[InlineKeyboardButton("تایید", callback_data='confirm')]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            message = await context.bot.send_message(
+                chat_id=user,
+                text="این یک پیام یادآوری است. لطفاً تایید کنید.",
+                reply_markup=reply_markup
+            )
+            query = f"""
+            UPDATE users
+            SET last_reminder = %s
+            WHERE chat_id = %s
+        """
+            values = (message.message_id , user)
+            cursor.execute(query, values)
+            db.commit()
+
+    list_users.clear()
 
 
-
+async def check_reminders(context: ContextTypes.DEFAULT_TYPE) -> None:
+    global token
+    global list_users
+    get_from_db()
+    global user_input , password_input , host_input , database_input , list_users
+    db = mysql.connector.connect(user=user_input, password=password_input,
+                                host=host_input , database = database_input)
+    cursor = db.cursor()
+    for user in list_users :
+        query = f"SELECT last_reminder FROM users WHERE chat_id={user}"
+        ## getting records from the table
+        cursor.execute(query)
+        ## fetching all records from the 'cursor' object
+        last_reminder = cursor.fetchall()
+        print(type(last_reminder))
+        flag = last_reminder[0][0]
+        print(type(flag))
+        print(flag)
+        if flag:
+            print(last_reminder)
+            keyboard = [[InlineKeyboardButton("تایید", callback_data='confirm')]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await context.bot.send_message(
+                chat_id=user,
+                text="لطفاً یادآوری را تایید کنید.",
+                reply_markup=reply_markup
+            )
+    list_users.clear()
 
 def schedule_message() :
     schedule.every().wednesday.at("09:00" , timezone("Asia/Tehran")).do(send_message_every)
@@ -568,6 +656,12 @@ def main () :
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND , text_handler))
 
     application.add_error_handler(error)
+
+    tehran_tz = timezone('Asia/Tehran')
+    time_in_tehran = datetime.time(hour=20, minute=29, tzinfo=tehran_tz)
+    job_queue = application.job_queue
+    job_queue.run_daily(send_reminder, time=time_in_tehran)
+    application.job_queue.run_repeating(check_reminders, interval=60)
 
     schedule_thread = threading.Thread(target=schedule_message)
     schedule_thread.start()

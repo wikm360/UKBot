@@ -1,5 +1,4 @@
 user_input = "root"
-password_input = "password" #Mdmd@1383
-host_input = "127.0.0.1"
+password_input = "##############"
 database_input = "UKCalendar"
-token = "###########################"
+token = "#####################################"
