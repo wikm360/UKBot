@@ -28,6 +28,7 @@ from urllib.parse import unquote_plus
 import time
 from PIL import Image, ImageEnhance, ImageFilter
 import pytesseract
+import asyncio
 
 logging.basicConfig(filename='error.log', level=logging.ERROR,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -122,7 +123,6 @@ async def query_handler(update : Update , context : CallbackContext) :
         await query.answer()
         
         user_id = str(query.from_user.id)
-        await context.bot.sendMessage(user_id , "confirm")
         get_from_db()
         if user_id in list_users :
             query = f"""
@@ -133,7 +133,7 @@ async def query_handler(update : Update , context : CallbackContext) :
             values = (None , chat_id)
             cursor.execute(query, values)
             db.commit()
-            await query.edit_message_text(text="یادآوری تایید شد. ممنون!")
+            await context.bot.sendMessage(user_id , "یادآوری تایید شد. ممنون!")
 
 
 def get_from_db() :
@@ -216,12 +216,22 @@ async def start (update : Update , context : CallbackContext) :
         await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
         await context.bot.sendMessage(chat_id , " سلام " + str(fisrname) + " " + str(lastname) + "خوش آمدی")
         await context.bot.sendMessage(chat_id , "بات با موفقیت برای شما فعال شد")
+        feauture = '''ویژگی های ربات : \n 
+    ۱-ارسال پیام هفتگی برای رزرو غدا هر چهارشنبه \n 
+    ۲-ارسال پیام یادآوری در مواقع خاص مانند : \n
+        -انتخاب واحد اصلی \n
+        -انتخاب واحد مقدماتی \n
+        -نظرسنجی اساتید \n
+        -حذف اضطراری تک درس \n
+        - نظر سنجی اساتید \n
+        - به زودی امکان رزرو خودکار غذا بر اساس اولویت شما در کالینان
+        '''
+        await context.bot.sendMessage(chat_id , feauture)
     await user_menu(update , context)
 
 async def user_menu(update : Update , context : CallbackContext) :
     buttons = [
         ["مشاهده وضعیت" , "تقویم آموزشی ترم"],
-        #["تقویم آموزشی ترم"],
         ["ویژگی های ربات"],
         ["تنظیم کالینان"],
         ["درباره"],
@@ -244,12 +254,14 @@ async def Features(update : Update , context : CallbackContext) :
         -انتخاب واحد مقدماتی \n
         -نظرسنجی اساتید \n
         -حذف اضطراری تک درس \n
--نظرسنجی استاد راهنما\n
-        \n''')
+        - نظر سنجی اساتید \n
+        - به زودی امکان رزرو خودکار غذا بر اساس اولویت شما در کالینان
+        ''')
 
 
 async def setnut (update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
+    await context.bot.sendMessage(chat_id , text="در این بخش با تنظیم کردن یوزرنیم و پسورد اکانت کالینان خود ، در آپدیت بعدی امکان رزرو خودکار غذا شما در سایت کالینان از طریق بات بر اساس اولویت شما امکان پذیر میشود")
     await context.bot.sendMessage(chat_id , text="لطفاً یوزرنیم خود را وارد کنید:")
     context.user_data['next_step'] = 'get_username'
 
@@ -264,7 +276,7 @@ async def get_username(update : Update , context : CallbackContext):
     context.user_data['username'] = username
     
     # درخواست پسورد از کاربر
-    await context.bot.sendMessage(chat_id , text="password :")
+    await context.bot.sendMessage(chat_id , text="لطفاً پسورد خود را وارد کنید:")
     context.user_data['next_step'] = 'get_password'
 
 # تابع دریافت پسورد
@@ -289,7 +301,7 @@ async def get_password(update : Update , context : CallbackContext):
     db.commit()
     
     # ارسال یوزرنیم و پسورد به کاربر
-    await context.bot.sendMessage(chat_id , text=f"username = {context.user_data['username']}  , password = {password}")
+    await context.bot.sendMessage(chat_id , text=f"username = {context.user_data['username']}  , password = {password} ✅")
     
     await start(update, context)
 
@@ -298,8 +310,10 @@ def selenium ( max_retries, retry_delay , user , passwd , chat_id) :
     while attempt < max_retries:
         try:
             chrome_options = Options()
-            # chrome_options.add_argument('--no-sandbox')
-            # chrome_options.add_argument('--headless')
+            
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--headless')
+
             chrome_options.add_argument('--disable-dev-shm-usage')
 
             # Start a new instance of Chrome web browser
@@ -480,7 +494,7 @@ def extract_text_from_image(image_path):
 async def about(update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V3.3" )
+    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V3.4" )
 
 def status_check_in_database(chat_id) :
     db = mysql.connector.connect(user=user_input, password=password_input,
@@ -596,8 +610,23 @@ async def send_reminder(context :CallbackContext):
 
     list_users.clear()
 
+    await wait(context)
+
+
+async def wait (context) :
+    print("WAIT")
+    await asyncio.sleep(60)
+    count = 0
+    while True  :
+        print(count)
+        if count >= 3 :
+            break
+        await check_reminders(context)
+        count += 1
+        await asyncio.sleep(60)
 
 async def check_reminders(context: ContextTypes.DEFAULT_TYPE) -> None:
+    print("CHECK")
     global token
     global list_users
     get_from_db()
@@ -628,10 +657,11 @@ async def check_reminders(context: ContextTypes.DEFAULT_TYPE) -> None:
     list_users.clear()
 
 def schedule_message() :
-    schedule.every().wednesday.at("09:00" , timezone("Asia/Tehran")).do(send_message_every)
+    ##schedule.every().wednesday.at("09:00" , timezone("Asia/Tehran")).do(send_message_every)
+
     schedule.every().day.at("08:00" , timezone("Asia/Tehran")).do(send_message_specific)
-    schedule.every().day.at("23:00" , timezone("Asia/Tehran")).do(send_backup)
-    schedule.every().monday.at("09:00" , timezone("Asia/Tehran")).do(kalinan)
+    schedule.every().day.at("23:25" , timezone("Asia/Tehran")).do(send_backup)
+    #schedule.every().monday.at("09:00" , timezone("Asia/Tehran")).do(kalinan)
 
     while True:
         schedule.run_pending()
@@ -657,11 +687,11 @@ def main () :
 
     application.add_error_handler(error)
 
-    tehran_tz = timezone('Asia/Tehran')
-    time_in_tehran = datetime.time(hour=20, minute=29, tzinfo=tehran_tz)
-    job_queue = application.job_queue
-    job_queue.run_daily(send_reminder, time=time_in_tehran)
-    application.job_queue.run_repeating(check_reminders, interval=60)
+    #send message every wednesday for kalinan :
+    # tehran_tz = timezone('Asia/Tehran')
+    # time_in_tehran = datetime.time(hour=8, minute=5, tzinfo=tehran_tz)
+    # job_queue = application.job_queue
+    # job_queue.run_daily(send_reminder, time=time_in_tehran)
 
     schedule_thread = threading.Thread(target=schedule_message)
     schedule_thread.start()
