@@ -12,12 +12,11 @@ import mysql.connector
 import subprocess
 import requests
 import logging
-from databasedetail import user_input , password_input , host_input , database_input , token
+from Variables import user_input , password_input , host_input , database_input , token , port_mysql , admin_chat
 import schedule
 from pytz import timezone
 import time
 import datetime
-#from datetime import datetime
 import threading
 from selenium.webdriver.common.by import By
 from selenium import webdriver
@@ -33,12 +32,14 @@ import asyncio
 logging.basicConfig(filename='error.log', level=logging.ERROR,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+db = mysql.connector.connect(user=user_input, password=password_input,
+                    host=host_input , database = database_input ,port  = port_mysql)
+
 status = bool
 list_users = []
 date = []
 # admin interface :
 async def admin_handler (update : Update , context : CallbackContext) :
-    admin_chat = 877591460
     chat_id = update.message.chat_id
     if chat_id == admin_chat :
         await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
@@ -63,8 +64,7 @@ async def admin_handler (update : Update , context : CallbackContext) :
         )
 
 async def query_handler(update : Update , context : CallbackContext) :
-    global user_input , password_input , database_input , status
-    admin_chat = 877591460
+    global status
     query = update.callback_query
     data = query.data
     chat_id = query.message.chat_id
@@ -82,8 +82,6 @@ async def query_handler(update : Update , context : CallbackContext) :
         context.user_data['action'] = 'send'
     elif data == "change_status" :
         if status == True :
-            db = mysql.connector.connect(user=user_input, password=password_input,
-                              host=host_input , database = database_input)
             cursor = db.cursor()
             query = "DELETE FROM users WHERE chat_id = " + chat_id_str
             cursor.execute(query)
@@ -91,8 +89,6 @@ async def query_handler(update : Update , context : CallbackContext) :
             await context.bot.sendMessage(chat_id , "ربات برای شما غیرفعال شد")
             status = False
         elif status == False :
-            db = mysql.connector.connect(user=user_input, password=password_input,
-                              host=host_input , database = database_input)
             cursor = db.cursor()
             fisrname = query.message.chat.first_name
             lastname = query.message.chat.last_name
@@ -114,8 +110,6 @@ async def query_handler(update : Update , context : CallbackContext) :
         await context.bot.sendMessage(chat_id , "پیام موردنظر را وارد کنید :\n YY-MM-DD , Event ")
         context.user_data['action'] = 'append_dates'
     elif data == "confirm" :
-        db = mysql.connector.connect(user=user_input, password=password_input,
-                                    host=host_input , database = database_input)
         cursor = db.cursor()
 
         global list_users
@@ -137,9 +131,6 @@ async def query_handler(update : Update , context : CallbackContext) :
 
 
 def get_from_db() :
-    global user_input , password_input , host_input , database_input
-    db = mysql.connector.connect(user=user_input, password=password_input,
-                                host=host_input , database = database_input)
     cursor = db.cursor()
     global list_users
     
@@ -196,8 +187,6 @@ async def text_handler (update : Update , context : CallbackContext) :
 #start and user interface:
         
 async def start (update : Update , context : CallbackContext) :
-    db = mysql.connector.connect(user=user_input, password=password_input,
-                              host=host_input , database = database_input)
     cursor = db.cursor()
     global status
     chat_id = update.message.chat_id
@@ -288,8 +277,6 @@ async def get_password(update : Update , context : CallbackContext):
     # ذخیره پسورد در متغیر
     context.user_data['password'] = password
 
-    db = mysql.connector.connect(user=user_input, password=password_input,
-                              host=host_input , database = database_input)
     cursor = db.cursor()
     query = f"""
     UPDATE users
@@ -398,9 +385,7 @@ def selenium ( max_retries, retry_delay , user , passwd , chat_id) :
     return False
 
 def kalinan () :
-    global user_input , password_input , host_input , database_input , list_users
-    db = mysql.connector.connect(user=user_input, password=password_input,
-                                host=host_input , database = database_input)
+    global list_users
     get_from_db()
     for chat_id in list_users :
         cursor = db.cursor()
@@ -494,11 +479,9 @@ def extract_text_from_image(image_path):
 async def about(update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V3.4" )
+    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V3.5" )
 
 def status_check_in_database(chat_id) :
-    db = mysql.connector.connect(user=user_input, password=password_input,
-                              host=host_input , database = database_input)
     cursor = db.cursor()
     global status
     status = False
@@ -550,8 +533,8 @@ def send_message_specific () :
         for line in file :
             date = line.split(",")[0].strip()
             event = line.split(",")[1].strip()
-            specific_date = datetime.strptime(date, '%Y-%m-%d') 
-            current_date = datetime.now()
+            specific_date = datetime.datetime.strptime(date, '%Y-%m-%d')
+            current_date = datetime.datetime.now()
             if specific_date.date() == current_date.date():
                 for user in list_users :
                     requests.get("https://api.telegram.org/bot" + token + "/sendMessage" + "?chat_id=" + user + "&text=" + " یادآوری " + event)
@@ -560,7 +543,6 @@ def send_message_specific () :
 
 def send_backup () : 
     global token
-    admin_chat = '877591460'
     with open("./backup_file", 'wb') as file:
         subprocess.run(['mysqldump', '-u', user_input, '-p' + password_input, database_input], stdout=file)
     url = f'https://api.telegram.org/bot{token}/sendDocument'
@@ -575,9 +557,7 @@ async def send_reminder(context :CallbackContext):
     global token
     global list_users
     get_from_db()
-    global user_input , password_input , host_input , database_input , list_users
-    db = mysql.connector.connect(user=user_input, password=password_input,
-                                host=host_input , database = database_input)
+    global list_users
     cursor = db.cursor()
 
     tehran_tz = timezone('Asia/Tehran')
@@ -630,9 +610,7 @@ async def check_reminders(context: ContextTypes.DEFAULT_TYPE) -> None:
     global token
     global list_users
     get_from_db()
-    global user_input , password_input , host_input , database_input , list_users
-    db = mysql.connector.connect(user=user_input, password=password_input,
-                                host=host_input , database = database_input)
+    global list_users
     cursor = db.cursor()
     for user in list_users :
         query = f"SELECT last_reminder FROM users WHERE chat_id={user}"

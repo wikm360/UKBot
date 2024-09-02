@@ -1,24 +1,25 @@
 import mysql.connector
 from mysql.connector import Error
+from Variables import host_input , user_input , password_input , port_mysql
+
 
 try:
     connection = mysql.connector.connect(
-        host='127.0.0.1',
-        user='root',
-        password='Mdmd@1383'
+        host=host_input,
+        user=user_input,
+        password=password_input,
+        port=port_mysql
     )
     
     if connection.is_connected():
         cursor = connection.cursor()
         
-        # ایجاد دیتابیس
         cursor.execute("CREATE DATABASE IF NOT EXISTS UKCalendar")
-        print("دیتابیس UKCalendar با موفقیت ساخته شد.")
+        print("UKCalendar database created successfully")
         
-        # استفاده از دیتابیس
         cursor.execute("USE UKCalendar")
         
-        # ایجاد جدول users با دو ستون جدید
+        # create table
         create_table_query = """
         CREATE TABLE IF NOT EXISTS users (
           id INT NOT NULL AUTO_INCREMENT,
@@ -31,12 +32,12 @@ try:
         )
         """
         cursor.execute(create_table_query)
-        print("جدول users با موفقیت ساخته شد.")
+        print("users tabale created successfully")
         
 except Error as e:
-    print(f"خطا در اتصال به MySQL: {e}")
+    print(f"error in connect to Mysql: {e}")
 finally:
     if connection.is_connected():
         cursor.close()
         connection.close()
-        print("اتصال به MySQL بسته شد.")
+        print("Mysql is disconnected.")
