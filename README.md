@@ -4,37 +4,54 @@
 A telegram bot, automatic login and food reservation on Callinan site, reminder of food reservation, reminder of educational calendar dates and...
 
 
-## Prerequisites
+## Installation
 
-Before installing the required libraries, you must first install Python and pip
 
-```bash
-  pip install python-telegram-bot
-  pip install mysql-connector
-  pip install pytz
-  pip install requests
-  pip install schedule
-  pip install datetime
-```
-## Get
-
-First, download and extract the project with the following command :
+First of all , Download and Unzip file :
 
 ```bash
-  wget https://github.com/wikm360/UK-Calendar/releases/download/v2.1/UK-calendar.zip
-  unzip UK-Calendar.zip
-  cd UK-Calendar/
+    wget https://github.com/wikm360/UKBot/releases/latest/download/UKBot.zip
+    mkdir UKBot
+    unzip UKBot.zip -d UKBot
+    cd UKBot
 ```
 
-## Change databese Variable
+install requirements python library :
 
 ```bash
-  nano databasedetail.py
+    pip install -r requirements.txt
+
 ```
-change variables with your own ...
 
-## Start Bot 
+## Change Variable 
+
+change Variable with your own :
+
 
 ```bash
-  python3 main.py
+    nano Variables.py
+
+```
+
+
+## Mysql Setup 
+
+After install mysql and change Variables , run this :
+
+
+```bash
+    sudo python3 mysql_setup.py
+
+```
+
+
+
+## Start
+
+For start Bot :
+
+
+```bash
+    sudo python3 main.py
+
 ```
