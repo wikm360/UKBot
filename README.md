@@ -1,7 +1,10 @@
 
 # UKBot
 
-A telegram bot, automatic login and food reservation on Callinan site, reminder of food reservation, reminder of educational calendar dates and...
+A telegram bot, automatic login and food reservation on Cullinan site, reminder of food reservation, reminder of educational calendar dates and...
+
+
+🟢 Shahid Bahonar University of Kerman : https://t.me/ukcalendar_bot
 
 
 ## Installation
