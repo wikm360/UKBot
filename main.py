@@ -9,6 +9,7 @@ from telegram import InlineKeyboardButton
 from telegram.ext import CallbackQueryHandler
 from telegram.ext import ConversationHandler
 import mysql.connector
+from mysql.connector import Error
 import subprocess
 import requests
 import logging
@@ -32,12 +33,22 @@ import asyncio
 logging.basicConfig(filename='error.log', level=logging.ERROR,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-db = mysql.connector.connect(user=user_input, password=password_input,
-                    host=host_input , database = database_input ,port  = port_mysql)
-
 status = bool
 list_users = []
 date = []
+
+def connect_to_database():
+    try:
+        db = mysql.connector.connect(user=user_input, password=password_input,
+                            host=host_input , database = database_input ,port  = port_mysql)
+
+        if db.is_connected():
+            print("Connected to MySQL database")
+            return db
+    except Error as e:
+        print(f"Error while connecting to MySQL: {e}")
+        return None
+
 # admin interface :
 async def admin_handler (update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
@@ -82,13 +93,16 @@ async def query_handler(update : Update , context : CallbackContext) :
         context.user_data['action'] = 'send'
     elif data == "change_status" :
         if status == True :
+            db = connect_to_database()
             cursor = db.cursor()
             query = "DELETE FROM users WHERE chat_id = " + chat_id_str
             cursor.execute(query)
             db.commit()
+            db.close()
             await context.bot.sendMessage(chat_id , "ربات برای شما غیرفعال شد")
             status = False
         elif status == False :
+            db = connect_to_database()
             cursor = db.cursor()
             fisrname = query.message.chat.first_name
             lastname = query.message.chat.last_name
@@ -100,6 +114,7 @@ async def query_handler(update : Update , context : CallbackContext) :
             values = (fisrname+" " + lastname, chat_id)
             cursor.execute(query, values)
             db.commit()
+            db.close()
             status = True
             await context.bot.sendMessage(chat_id , "ربات برای شما فعال شد")
             #await start(query , context)
@@ -110,6 +125,8 @@ async def query_handler(update : Update , context : CallbackContext) :
         await context.bot.sendMessage(chat_id , "پیام موردنظر را وارد کنید :\n YY-MM-DD , Event ")
         context.user_data['action'] = 'append_dates'
     elif data == "confirm" :
+        get_from_db()
+        db = connect_to_database()
         cursor = db.cursor()
 
         global list_users
@@ -117,7 +134,6 @@ async def query_handler(update : Update , context : CallbackContext) :
         await query.answer()
         
         user_id = str(query.from_user.id)
-        get_from_db()
         if user_id in list_users :
             query = f"""
             UPDATE users
@@ -127,10 +143,12 @@ async def query_handler(update : Update , context : CallbackContext) :
             values = (None , chat_id)
             cursor.execute(query, values)
             db.commit()
+            db.close()
             await context.bot.sendMessage(user_id , "یادآوری تایید شد. ممنون!")
 
 
 def get_from_db() :
+    db = connect_to_database()
     cursor = db.cursor()
     global list_users
     
@@ -146,6 +164,7 @@ def get_from_db() :
             list_users.append(r)
         except :
             pass
+    db.close()
     return list_users
 
 async def text_handler (update : Update , context : CallbackContext) :
@@ -187,6 +206,7 @@ async def text_handler (update : Update , context : CallbackContext) :
 #start and user interface:
         
 async def start (update : Update , context : CallbackContext) :
+    db = connect_to_database()
     cursor = db.cursor()
     global status
     chat_id = update.message.chat_id
@@ -202,6 +222,7 @@ async def start (update : Update , context : CallbackContext) :
         values = (fisrname+" " + lastname, chat_id)
         cursor.execute(query, values)
         db.commit()
+        db.close()
         await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
         await context.bot.sendMessage(chat_id , " سلام " + str(fisrname) + " " + str(lastname) + "خوش آمدی")
         await context.bot.sendMessage(chat_id , "بات با موفقیت برای شما فعال شد")
@@ -277,6 +298,7 @@ async def get_password(update : Update , context : CallbackContext):
     # ذخیره پسورد در متغیر
     context.user_data['password'] = password
 
+    db = connect_to_database()
     cursor = db.cursor()
     query = f"""
     UPDATE users
@@ -286,6 +308,7 @@ async def get_password(update : Update , context : CallbackContext):
     values = (context.user_data['username'], password ,  chat_id)
     cursor.execute(query, values)
     db.commit()
+    db.close()
     
     # ارسال یوزرنیم و پسورد به کاربر
     await context.bot.sendMessage(chat_id , text=f"username = {context.user_data['username']}  , password = {password} ✅")
@@ -388,6 +411,7 @@ def kalinan () :
     global list_users
     get_from_db()
     for chat_id in list_users :
+        db = connect_to_database()
         cursor = db.cursor()
         query = f"SELECT nut_username FROM users WHERE chat_id={chat_id}"
         ## getting records from the table
@@ -397,6 +421,7 @@ def kalinan () :
         query = f"SELECT nut_password FROM users WHERE chat_id={chat_id}"    
         cursor.execute(query)
         passwd_list = cursor.fetchall()
+        db.close()
         try:
             user = str(user_list[0]).split("(")[1].split(")")[0].split(",")[0].split("'")[1]
             passwd = str(passwd_list[0]).split("(")[1].split(")")[0].split(",")[0].split("'")[1]
@@ -482,6 +507,7 @@ async def about(update : Update , context : CallbackContext) :
     await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V3.5" )
 
 def status_check_in_database(chat_id) :
+    db = connect_to_database()
     cursor = db.cursor()
     global status
     status = False
@@ -495,6 +521,7 @@ def status_check_in_database(chat_id) :
             break
         else :
             pass
+    db.close()
 
 
 async def status_check(update : Update , context : CallbackContext) :
@@ -558,6 +585,7 @@ async def send_reminder(context :CallbackContext):
     global list_users
     get_from_db()
     global list_users
+    db = connect_to_database()
     cursor = db.cursor()
 
     tehran_tz = timezone('Asia/Tehran')
@@ -588,6 +616,7 @@ async def send_reminder(context :CallbackContext):
             cursor.execute(query, values)
             db.commit()
 
+    db.close()
     list_users.clear()
 
     await wait(context)
@@ -611,6 +640,7 @@ async def check_reminders(context: ContextTypes.DEFAULT_TYPE) -> None:
     global list_users
     get_from_db()
     global list_users
+    db = connect_to_database()
     cursor = db.cursor()
     for user in list_users :
         query = f"SELECT last_reminder FROM users WHERE chat_id={user}"
@@ -632,6 +662,7 @@ async def check_reminders(context: ContextTypes.DEFAULT_TYPE) -> None:
                 text="لطفاً یادآوری را تایید کنید.",
                 reply_markup=reply_markup
             )
+    db.close()
     list_users.clear()
 
 def schedule_message() :
