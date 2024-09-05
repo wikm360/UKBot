@@ -27,15 +27,17 @@ install requirements python library :
 
 ```
 
-## Change Variable 
+## Change Variables 
 
 change Variable with your own :
 
 
 ```bash
     nano Variables.py
+    nano date.txt
 
 ```
+Also change calendar.jpg image with your educational calendar
 
 
 ## Mysql Setup 
