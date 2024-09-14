@@ -504,7 +504,7 @@ def extract_text_from_image(image_path):
 async def about(update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V3.5.3" )
+    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V3.6.0" )
 
 def status_check_in_database(chat_id) :
     db = connect_to_database()
@@ -562,7 +562,7 @@ def send_message_specific () :
             event = line.split(",")[1].strip()
             specific_date = datetime.datetime.strptime(date, '%Y-%m-%d')
             current_date = datetime.datetime.now()
-            if specific_date.date() == current_date.date():
+            if str(specific_date.date()).split(" ")[0] == str(current_date.date()).split(" ")[0]:
                 for user in list_users :
                     requests.get("https://api.telegram.org/bot" + token + "/sendMessage" + "?chat_id=" + user + "&text=" + " یادآوری " + event)
                 list_users.clear()
@@ -589,7 +589,7 @@ async def send_reminder(context :CallbackContext):
     cursor = db.cursor()
 
     tehran_tz = timezone('Asia/Tehran')
-    if datetime.datetime.now(tehran_tz).weekday() == 3:  # 3 یعنی پنجشنبه
+    if datetime.datetime.now(tehran_tz).weekday() == 1:  # 0: دوشنبه (Monday) , 6: یک‌شنبه (Sunday)
         for user in list_users :
             query = f"SELECT last_reminder FROM users WHERE chat_id={user}"
             ## getting records from the table
@@ -604,7 +604,7 @@ async def send_reminder(context :CallbackContext):
             
             message = await context.bot.send_message(
                 chat_id=user,
-                text="این یک پیام یادآوری است. لطفاً تایید کنید.",
+                text="برای هفته آینده غذا رزرو کنید . لطفا این پیام را تایید کنید",
                 reply_markup=reply_markup
             )
             query = f"""
@@ -624,7 +624,7 @@ async def send_reminder(context :CallbackContext):
 
 async def wait (context) :
     print("WAIT")
-    await asyncio.sleep(60)
+    await asyncio.sleep(3600)
     count = 0
     while True  :
         print(count)
@@ -632,7 +632,7 @@ async def wait (context) :
             break
         await check_reminders(context)
         count += 1
-        await asyncio.sleep(60)
+        await asyncio.sleep(3600)
 
 async def check_reminders(context: ContextTypes.DEFAULT_TYPE) -> None:
     print("CHECK")
@@ -697,10 +697,10 @@ def main () :
     application.add_error_handler(error)
 
     #send message every wednesday for kalinan :
-    # tehran_tz = timezone('Asia/Tehran')
-    # time_in_tehran = datetime.time(hour=8, minute=5, tzinfo=tehran_tz)
-    # job_queue = application.job_queue
-    # job_queue.run_daily(send_reminder, time=time_in_tehran)
+    tehran_tz = timezone('Asia/Tehran')
+    time_in_tehran = datetime.time(hour=8, minute=5, tzinfo=tehran_tz)
+    job_queue = application.job_queue
+    job_queue.run_daily(send_reminder, time=time_in_tehran)
 
     schedule_thread = threading.Thread(target=schedule_message)
     schedule_thread.start()
