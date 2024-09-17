@@ -504,7 +504,7 @@ def extract_text_from_image(image_path):
 async def about(update : Update , context : CallbackContext) :
     chat_id = update.message.chat_id
     await context.bot.send_chat_action(chat_id , ChatAction.TYPING)
-    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V3.6.0" )
+    await context.bot.sendMessage(chat_id , "Created By @wikm360 with ❤️ \n V3.6.1" )
 
 def status_check_in_database(chat_id) :
     db = connect_to_database()
@@ -616,10 +616,10 @@ async def send_reminder(context :CallbackContext):
             cursor.execute(query, values)
             db.commit()
 
-    db.close()
-    list_users.clear()
+        db.close()
+        list_users.clear()
 
-    await wait(context)
+        await wait(context)
 
 
 async def wait (context) :
@@ -698,7 +698,7 @@ def main () :
 
     #send message every wednesday for kalinan :
     tehran_tz = timezone('Asia/Tehran')
-    time_in_tehran = datetime.time(hour=8, minute=5, tzinfo=tehran_tz)
+    time_in_tehran = datetime.time(hour=10, minute=38, tzinfo=tehran_tz)
     job_queue = application.job_queue
     job_queue.run_daily(send_reminder, time=time_in_tehran)
 

@@ -1,9 +1,9 @@
 #Database variables :
 user_input = "root"
 host_input = "127.0.0.1"
-password_input = "########"
+password_input = "######"
 database_input = "UKCalendar"
 port_mysql = "3306"
 #Telegram Variables :
-token = "################################"
+token = "##########"
 admin_chat = 123456789
