@@ -1,11 +1,18 @@
 
 # UKBot
 
-Telegram bot, food reservation reminder and educational calendar dates reminder.
+Telegram bot, food reservation reminder and educational calendar dates reminder. 
 
 
 Adding automatic log-in and food reservations on the Cullinan site soon
 
+## Features
+
+- Send a weekly reminder message on the specified day for food reservation
+- Sending reminder messages at specific educational times
+- Send an image of the educational calendar
+- Bot activation and deactivation button for the user
+- The capabilities of sending public messages, sending backups both automatically and manually, and add or remove dates for admin
 
 🟢 Example - Shahid Bahonar University of Kerman : https://t.me/ukcalendar_bot
 
